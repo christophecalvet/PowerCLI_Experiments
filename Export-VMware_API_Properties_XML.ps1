@@ -5,7 +5,7 @@ Export all properties of a VMware View object as an XML file.
 
 .NOTES
 Author: Christophe Calvet
-Blog: http://www.thecrazyconsultant.com/Export-VMwareViewObjectPropertiesAsXml
+Blog: http://thecrazyconsultant.com/export-api-properties-xml-powercli/
 
 .PARAMETER ToAnalyse
 The VMware View Object to analyse.
