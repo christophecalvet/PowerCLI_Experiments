@@ -15,14 +15,14 @@ All properties defined in this array will not be exported in the xml file.
 The property to be excluded has to be provided with the full path from the object analysed, always starting with "."
 For example to remove BiosInformation for a HostSytem object use '.hardware.biosinfo' in the array.
 
-.Path
+.PARAMETER Path
 Full path of the exported xml files.
 
-.PropertyPath
-Do not use this parameter. It is used internally for the script.
+.PARAMETER PropertyPath
+Do not use this parameter. It is for internal use only.
 
-.ScriptFirstIteration
-Do not use this parameter. It is used internally for the script.
+.PARAMETER ScriptFirstIteration
+Do not use this parameter. It is for internal use only.
 
 .EXAMPLE
 $ObjectToAnalyse = (get-vmhost "NameOfAVMHost").extensiondata
