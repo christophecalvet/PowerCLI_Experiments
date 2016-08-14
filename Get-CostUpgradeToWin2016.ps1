@@ -1,6 +1,109 @@
 #Datacenter/ClusterIfAny/Name/Socket/CorePhysical/CoreLogical/PhysicalCorePerCPU/2012R2DatacenterLicense/OldCost/2Cores/Price/ExtraPrice/Difference
 
 
+function get-VMHostCostUpgradeToWin2016{
+<#
+.SYNOPSIS
+Analyse your VMware environment to estimate the cost of upgrading from Windows 2012R2  to 2016.
+Need to be connected to one vCenter
+#>
+	[CmdletBinding()]
+	param(
+	[long]$Price2012R2TwoProcessor = 6155,
+	[long]$Price2016TwoCorePack = ($Price2012R2TwoProcessor/8),	
+	[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+	[VMware.VimAutomation.ViCore.Types.V1.Inventory.VMHost[]]$VMhost
+	)
+	process{
+		foreach($SelectedVMHost in $VMhost){
+				$NumCpuPackages = $SelectedVMHost.extensiondata.hardware.cpuinfo.NumCpuPackages
+				$NumCpuCores = $SelectedVMHost.extensiondata.hardware.cpuinfo.NumCpuCores
+				$PhysicalCoresPerProcessor = $NumCpuCores/$NumCpuPackages
+				$TotalLogicalCores = $SelectedVMHost.extensiondata.hardware.cpuinfo.numCpuThreads
+				
+				if($NumCpuPackages -eq 1){
+				$License2012R2Needed = 1
+				}
+				Else{
+				$License2012R2Needed = $NumCpuPackages / 2
+				}
+
+				if($PhysicalCoresPerProcessor -lt 8){
+				#Each physical processor will be required to be licensed with a minimum of 8 physical cores
+				$PhysicalCoresPerProcessorToBeLicensed = 8
+				}
+				Else{
+				$PhysicalCoresPerProcessorToBeLicensed = $PhysicalCoresPerProcessor
+				}
+				#Each physical server will be required to be licensed for all physical cores
+				$TotalPhysicalCoresToBeLicensed = $PhysicalCoresPerProcessorToBeLicensed * $NumCpuPackages
+				
+				if($TotalPhysicalCoresToBeLicensed -lt 16){
+				#Each physical server will be required to be licensed with a minimum of two processors, totaling a minimum of 16 physical cores
+				$TotalPhysicalCoresToBeLicensed = 16
+				}
+				
+				#Core licenses will be sold in two-core packs
+				$TwoCorePack2016Needed = $TotalPhysicalCoresToBeLicensed/2
+				
+				$OldPrice2012R2 = $Price2012R2TwoProcessor * $License2012R2Needed
+				$NewPrice2016 = $Price2016TwoCorePack * $TwoCorePack2016Needed
+				$Difference = $NewPrice2016 - $OldPrice2012R2
+				
+					   $Output = New-Object -Type PSObject -Prop ([ordered]@{
+						'Host' = $SelectedVMHost
+						'Processor' = $NumCpuPackages
+						'PhysicalCoresPerProcessor' = $PhysicalCoresPerProcessor
+						'TotalPhysicalCore' = $NumCpuCores
+						'TotalLogicalCore' = $TotalLogicalCores
+						'LicenseNeeded2012R2' = $License2012R2Needed
+						'OldPrice2012R2' = $OldPrice2012R2
+						'TwoCorePackNeeded2016' = $TwoCorePack2016Needed
+						'NewPrice2016' = $NewPrice2016
+						'PriceIncrease' = $Difference 
+						'IncreasePercent' =  [math]::Round(($Difference / $OldPrice2012R2)*100)
+						})
+						Write-Output $Output
+		}
+	}
+}
+
+function get-ClusterCostUpgradeToWin2016{
+<#
+.SYNOPSIS
+Analyse your VMware environment to estimate the cost of upgrading from Windows 2012R2  to 2016.
+Need to be connected to one vCenter
+#>
+	[CmdletBinding()]
+	param(
+	[long]$Price2012R2TwoProcessor = 6155,
+	[long]$Price2016TwoCorePack = ($Price2012R2TwoProcessor/8),	
+	[Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+	[VMware.VimAutomation.ViCore.Types.V1.Inventory.ClusterComputeResource[]]$Cluster
+	)
+	process{
+		foreach($SelectedCluster in $Cluster){		
+			$HostInThisCluster = 0
+			$CLusterLicense2012R2Needed = 0
+			$ClusterTwoCorePack2016Needed = 0
+			$AllHostsInThisCluster = get-vmhost -location $SelectedCluster
+				$AllHostsInThisCluster | get-VMHostCostUpgradeToWin2016 -Price2012R2TwoProcessor $Price2012R2TwoProcessor -Price2016TwoCorePack $Price2016TwoCorePack| foreach{
+				$HostInThisCluster = $HostInThisCluster + 1
+				$CLusterLicense2012R2Needed = $CLusterLicense2012R2Needed + $_.LicenseNeeded2012R2
+				$ClusterTwoCorePack2016Needed = $ClusterTwoCorePack2016Needed + $_.TwoCorePackNeeded2016
+				}
+			$ClusterOldPrice2012R2 = $CLusterLicense2012R2Needed * $Price2012R2TwoProcessor
+			$ClusterNewPrice2012R2 = $ClusterTwoCorePack2016Needed * $Price2016TwoCorePack
+			$ClusterPriceIncrease = $ClusterNewPrice2012R2 - $ClusterOldPrice2012R2
+			$ClusterIncreasePercent = [math]::Round(($ClusterPriceIncrease / $ClusterOldPrice2012R2)*100	
+		}
+	}	
+}
+
+
+
+
+
 function Get-CostUpgradeToWin2016{
 <#
 .SYNOPSIS
